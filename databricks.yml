@@ -1,0 +1,49 @@
+# =============================================================================
+# Solution Accelerator — Detección de Anomalías en Pozos (Oil & Gas Upstream)
+# Plataforma end-to-end sobre Databricks, entregada como Databricks Asset Bundle.
+#
+# Escenario: analizar datos históricos + incrementales de producción/operación de
+# pozos para detectar anomalías con reglas analíticas + modelos ML + IA generativa.
+#
+# Notebooks (uno por tema — ver src/notebooks/):
+#   00_setup                     catálogo/esquema/volume en UC + generación de datos sintéticos
+#   01_ingestion_incremental     Auto Loader / streaming tables (ingesta incremental → histórico)
+#   02_unity_catalog_governance  linaje, tags, grants, row/column masking
+#   03_anomaly_rules             reglas + MATCH_RECOGNIZE + detección de anomalías con IA (SQL)
+#   04_anomaly_ml                Isolation Forest / PyOD + XGBoost + SHAP, MLflow → UC Model Registry
+#   05_genai_enrichment          AI Functions en SQL (ai_classify/ai_extract/ai_query) sobre comentarios
+#   06_model_serving             endpoint de Model Serving + consumo vía AI Functions
+#   07_feedback_loop             feedback de usuario → mejorar clasificaciones/predicciones
+#   08_reference_architecture     arquitectura de referencia + buenas prácticas a producción
+#
+# Deploy:  databricks bundle deploy -t dev -p <profile>
+# Run:     databricks bundle run generar_datos -t dev -p <profile>     (1 vez, siembra los datos)
+# =============================================================================
+bundle:
+  name: oilgas-anomaly-pozos
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Catálogo destino en Unity Catalog para el workshop.
+    default: oilgas_anomaly_demo
+  schema:
+    description: Esquema destino dentro del catálogo.
+    default: pozos
+  landing_volume:
+    description: Nombre del Volume de UC donde aterrizan los archivos crudos para Auto Loader.
+    default: landing
+
+targets:
+  # Target por defecto. Host y autenticación vienen del perfil del CLI (-p <profile>).
+  dev:
+    mode: development
+    default: true
+
+  prod:
+    mode: production
+    variables:
+      catalog: oilgas_anomaly
+      schema: pozos

@@ -1,0 +1,8 @@
+# Databricks Asset Bundle build/state (never commit — contains workspace host + state)
+.databricks/
+# Python
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+# OS
+.DS_Store

@@ -1,0 +1,119 @@
+# Jobs del workshop. Todos corren en cómputo serverless (sin clusters dedicados).
+resources:
+  jobs:
+    generar_datos:
+      name: "[oilgas-anomaly] 00 · Generar datos sintéticos de pozos"
+      # Siembra catálogo/esquema/volume + histórico e incremental. Correr una vez.
+      tasks:
+        - task_key: setup_y_generacion
+          notebook_task:
+            notebook_path: ../src/notebooks/00_setup.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              landing_volume: ${var.landing_volume}
+
+    run_all:
+      name: "[oilgas-anomaly] Correr TODO en orden (00 → 08)"
+      # Ejecuta los 9 notebooks en orden válido de dependencias. Para dejar outputs.
+      tasks:
+        - task_key: t00
+          notebook_task:
+            notebook_path: ../src/notebooks/00_setup.py
+            base_parameters:
+              catalog: "${var.catalog}"
+              schema: "${var.schema}"
+              landing_volume: "${var.landing_volume}"
+        - task_key: t01
+          depends_on:
+            - task_key: t00
+          notebook_task:
+            notebook_path: ../src/notebooks/01_ingestion_incremental.py
+            base_parameters:
+              catalog: "${var.catalog}"
+              schema: "${var.schema}"
+              landing_volume: "${var.landing_volume}"
+        - task_key: t02
+          depends_on:
+            - task_key: t01
+          notebook_task:
+            notebook_path: ../src/notebooks/02_unity_catalog_governance.py
+            base_parameters:
+              catalog: "${var.catalog}"
+              schema: "${var.schema}"
+        - task_key: t03
+          depends_on:
+            - task_key: t02
+          notebook_task:
+            notebook_path: ../src/notebooks/03_anomaly_rules.py
+            base_parameters:
+              catalog: "${var.catalog}"
+              schema: "${var.schema}"
+        - task_key: t04
+          depends_on:
+            - task_key: t03
+          notebook_task:
+            notebook_path: ../src/notebooks/04_anomaly_ml.py
+            base_parameters:
+              catalog: "${var.catalog}"
+              schema: "${var.schema}"
+        - task_key: t05
+          depends_on:
+            - task_key: t04
+          notebook_task:
+            notebook_path: ../src/notebooks/05_genai_enrichment.py
+            base_parameters:
+              catalog: "${var.catalog}"
+              schema: "${var.schema}"
+        - task_key: t06
+          depends_on:
+            - task_key: t05
+          notebook_task:
+            notebook_path: ../src/notebooks/06_model_serving.py
+            base_parameters:
+              catalog: "${var.catalog}"
+              schema: "${var.schema}"
+        - task_key: t07
+          depends_on:
+            - task_key: t06
+          notebook_task:
+            notebook_path: ../src/notebooks/07_feedback_loop.py
+            base_parameters:
+              catalog: "${var.catalog}"
+              schema: "${var.schema}"
+        - task_key: t08
+          depends_on:
+            - task_key: t07
+          notebook_task:
+            notebook_path: ../src/notebooks/08_reference_architecture.py
+            base_parameters:
+              catalog: "${var.catalog}"
+              schema: "${var.schema}"
+
+    pipeline_anomalias:
+      name: "[oilgas-anomaly] Pipeline ingesta + detección (demo)"
+      # Encadena ingesta incremental → reglas → scoring ML. Para mostrar orquestación.
+      tasks:
+        - task_key: ingesta_incremental
+          notebook_task:
+            notebook_path: ../src/notebooks/01_ingestion_incremental.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              landing_volume: ${var.landing_volume}
+        - task_key: reglas
+          depends_on:
+            - task_key: ingesta_incremental
+          notebook_task:
+            notebook_path: ../src/notebooks/03_anomaly_rules.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+        - task_key: scoring_ml
+          depends_on:
+            - task_key: reglas
+          notebook_task:
+            notebook_path: ../src/notebooks/04_anomaly_ml.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
